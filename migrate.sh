@@ -1,13 +1,6 @@
 #!/bin/bash
 
-# ==========================================
-# CONFIGURACIÓN Y MANEJO DE ERRORES
-# ==========================================
 set -e
-
-# ==========================================
-# FUNCIONES
-# ==========================================
 
 verificar_dependencias() {
   echo "[*] Verificando herramientas necesarias..."
@@ -68,10 +61,8 @@ convertir_disco_escribible() {
   echo "[*] Fase 2.5: Convirtiendo el disco comprimido a formato escribible..."
   echo "[*] (Esto arreglará el error de superbloque y lo hará 100% compatible con VMware)"
 
-  # -p muestra una barra de progreso. Convierte el disco y lo guarda en el temporal
   qemu-img convert -p -f vmdk -O vmdk "$archivo_vmdk" "$archivo_temp"
 
-  # Reemplazamos el comprimido con el nuevo disco escribible
   mv "$archivo_temp" "$archivo_vmdk"
   echo "[+] Conversión completada."
 }
@@ -151,10 +142,6 @@ EOF
   echo "--------------------------------------------------------"
 }
 
-# ==========================================
-# FLUJO PRINCIPAL (MAIN)
-# ==========================================
-
 if [ -z "$1" ]; then
   echo "Uso: $0 <archivo_maquina.ova>"
   exit 1
@@ -164,26 +151,19 @@ OVA_FILE="$1"
 BASENAME=$(basename "$OVA_FILE" .ova)
 DIR_NAME="${BASENAME}_extracted"
 
-# 0. Verificar dependencias
 verificar_dependencias
 
-# 1. Descomprimir
 descomprimir_ova "$OVA_FILE" "$DIR_NAME"
 
-# 2. Encontrar el disco
 VMDK_TARGET=$(encontrar_vmdk "$DIR_NAME" | tail -n 1)
 echo "[+] Disco encontrado: $VMDK_TARGET"
 
-# 2.5 Convertir disco a escribible (Arreglo del Superbloque)
 convertir_disco_escribible "$VMDK_TARGET"
 
-# 3. Encontrar la partición raíz
 PARTICION_OBJETIVO=$(encontrar_particion_raiz "$VMDK_TARGET" | tail -n 1)
 
-# 4. Confirmar con el usuario
 confirmar_ejecucion "$VMDK_TARGET" "$PARTICION_OBJETIVO"
 
-# 5. Inyectar configuración
 inyectar_red_universal "$VMDK_TARGET" "$PARTICION_OBJETIVO"
 
 exit 0
