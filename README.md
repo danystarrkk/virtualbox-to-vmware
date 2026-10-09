@@ -1,33 +1,30 @@
-# ⚡ OmniNet — Universal Network Patcher for OVA
+# 🛠️ Herramienta de preparación de máquinas virtuales Linux
 
-**Automatiza la configuración de red de máquinas virtuales CTF para facilitar su importación y ejecución en diferentes entornos de virtualización.**
+Herramienta basada en Bash para inspeccionar y modificar discos virtuales distribuidos en formato `.ova`, orientada a preparar máquinas Linux para su importación y uso en diferentes entornos de virtualización.
 
-OmniNet es un script Bash que permite extraer, inspeccionar y modificar imágenes de máquinas virtuales distribuidas en formato `.ova`, inyectando configuraciones DHCP en los principales sistemas de gestión de red de Linux.
-
-Su objetivo es reducir los problemas de conectividad que aparecen al importar máquinas virtuales entre entornos como VMware y otros hipervisores, especialmente cuando cambian los nombres de las interfaces de red.
-
----
+Permite localizar el disco virtual de una máquina, identificar la partición que contiene el sistema operativo e inyectar configuraciones de red mediante DHCP. Está pensada principalmente para laboratorios de ciberseguridad, máquinas CTF y entornos de práctica donde pueden aparecer problemas de conectividad después de importar una máquina virtual.
 
 ## ✨ Características
 
-- 📦 **Extracción automática de OVA:** descomprime el paquete y localiza el disco virtual `.vmdk`.
-- 💽 **Conversión del disco:** convierte el VMDK a una imagen reescrita mediante `qemu-img`.
-- 🔍 **Detección del sistema operativo:** inspecciona las particiones para localizar la raíz de Linux.
-- 🌐 **Configuración de red universal:** inyecta configuraciones DHCP para diferentes gestores de red.
-- 🛠️ **Compatibilidad con múltiples interfaces:** contempla nombres como `ens33` y `eth0`, además de patrones `en*` y `eth*`.
-- 🛡️ **Confirmación previa:** muestra el disco y la partición seleccionados antes de aplicar los cambios.
-- ⚙️ **Automatización:** ejecuta el procedimiento completo con un único comando.
+- 📦 **Gestión de archivos OVA:** extrae el contenido del paquete y localiza el disco virtual VMDK.
+- 💽 **Conversión de discos:** convierte la imagen VMDK mediante `qemu-img` para trabajar sobre una imagen reescrita.
+- 🔍 **Inspección del sistema de archivos:** utiliza herramientas de libguestfs para examinar las particiones e identificar la raíz de Linux.
+- 🌐 **Configuración de red:** incorpora perfiles DHCP para distintos gestores de red de Linux.
+- 🔌 **Adaptación a interfaces de red:** contempla diferentes convenciones de nombres de interfaces Ethernet.
+- ✅ **Confirmación antes de modificar:** presenta el disco y la partición seleccionados antes de aplicar los cambios.
+- 🧰 **Orientada a laboratorios:** facilita la preparación de máquinas virtuales que requieren ajustes de red antes de su utilización.
 
 ## 🧰 Requisitos
 
-El script está diseñado para sistemas Linux con las siguientes herramientas:
+La herramienta requiere un sistema Linux y las siguientes utilidades:
 
-| Herramienta        | Función                                         |
-| ------------------ | ----------------------------------------------- |
-| `tar`              | Extraer el archivo OVA                          |
-| `qemu-img`         | Convertir el disco virtual                      |
-| `virt-filesystems` | Inspeccionar sistemas de archivos y particiones |
-| `guestfish`        | Examinar y modificar el disco virtual           |
+| Dependencia        | Propósito                             |
+| ------------------ | ------------------------------------- |
+| `bash`             | Ejecutar el script                    |
+| `tar`              | Extraer el archivo OVA                |
+| `qemu-img`         | Convertir el disco virtual            |
+| `virt-filesystems` | Inspeccionar los sistemas de archivos |
+| `guestfish`        | Examinar y modificar el disco virtual |
 
 ### Instalación en Debian / Ubuntu
 
@@ -36,7 +33,7 @@ sudo apt update
 sudo apt install tar libguestfs-tools qemu-utils
 ```
 
-Comprueba que las herramientas estén disponibles:
+Comprueba que las herramientas necesarias estén disponibles:
 
 ```bash
 command -v tar
@@ -45,115 +42,117 @@ command -v virt-filesystems
 command -v guestfish
 ```
 
-> **Nota:** El script original sugiere instalar `linux-image-generic` y cambiar permisos de archivos del kernel. Estas acciones no deberían ejecutarse de forma preventiva sin comprobar primero si existe un problema real de inicialización de libguestfs.
-
 ## 🚀 Uso
 
-### 1. Descargar o preparar el archivo OVA
+### 1. Preparar el archivo
 
-Coloca el archivo de la máquina virtual en el directorio de trabajo. Por ejemplo:
+Descarga o coloca el archivo `.ova` que deseas preparar en tu directorio de trabajo.
+
+Ejemplo de estructura:
 
 ```text
 .
-├── ominet.sh
-└── target-machine.ova
+├── script.sh
+└── maquina-ctf.ova
 ```
 
-### 2. Dar permisos de ejecución
+### 2. Habilitar la ejecución
 
 ```bash
-chmod +x ominet.sh
+chmod +x script.sh
 ```
 
-### 3. Ejecutar el script
+### 3. Ejecutar la herramienta
 
 ```bash
-./ominet.sh target-machine.ova
+./script.sh maquina-ctf.ova
 ```
 
-Sustituye `target-machine.ova` por la ruta de tu archivo.
+También puedes proporcionar una ruta al archivo:
 
-### 4. Confirmar la operación
+```bash
+./script.sh /ruta/a/maquina-ctf.ova
+```
 
-El script extraerá el OVA, localizará el VMDK, lo convertirá e intentará identificar la partición raíz.
+### 4. Revisar la partición detectada
 
-Antes de modificar el disco, mostrará un resumen similar a este:
+La herramienta extraerá el paquete, localizará el disco virtual, realizará la conversión e intentará encontrar la partición que contiene el sistema operativo.
+
+Antes de continuar, mostrará un resumen de la operación:
 
 ```text
 --------------------------------------------------------
 [?] RESUMEN DE LA OPERACIÓN ANTES DE INYECTAR
-    - Disco objetivo: target-machine_extracted/disk.vmdk
+    - Disco objetivo: maquina-ctf_extracted/disk.vmdk
     - Sistema operativo detectado en: /dev/sda2
 --------------------------------------------------------
 ¿Es correcto y deseas inyectar la red universal en esta partición? (s/n):
 ```
 
-Comprueba que el disco y la partición sean correctos. Introduce `s` para continuar o `n` para cancelar.
+Verifica la información antes de confirmar. Introduce `s` para continuar o `n` para cancelar.
 
-### 5. Importar la máquina virtual
+### 5. Importar y comprobar la máquina
 
-Una vez completada la modificación, importa el disco resultante en tu entorno de virtualización y verifica que la máquina obtenga una dirección IP.
+Una vez completada la modificación, utiliza el disco resultante en tu entorno de virtualización y comprueba que el sistema invitado pueda configurar correctamente su interfaz de red y obtener una dirección IP.
 
-**Importante:** OmniNet prepara configuraciones de red mediante DHCP, pero no garantiza que la máquina obtenga conectividad en todos los hipervisores o laboratorios.
+## ⚙️ Configuraciones de red aplicadas
 
-## ⚙️ ¿Qué modifica?
+La herramienta intenta incorporar archivos de configuración en las siguientes ubicaciones del sistema invitado:
 
-El script intenta escribir configuraciones en las siguientes ubicaciones dentro del sistema de archivos invitado:
+| Archivo                                                       | Gestor de red    |
+| ------------------------------------------------------------- | ---------------- |
+| `/etc/netplan/99-omni-dhcp.yaml`                              | Netplan          |
+| `/etc/NetworkManager/system-connections/99-omni.nmconnection` | NetworkManager   |
+| `/etc/network/interfaces`                                     | ifupdown         |
+| `/etc/systemd/network/99-omni.network`                        | systemd-networkd |
 
-| Ruta                                                          | Propósito                           |
-| ------------------------------------------------------------- | ----------------------------------- |
-| `/etc/netplan/99-omni-dhcp.yaml`                              | Configuración DHCP para Netplan     |
-| `/etc/NetworkManager/system-connections/99-omni.nmconnection` | Perfil Ethernet para NetworkManager |
-| `/etc/network/interfaces`                                     | Configuración para ifupdown         |
-| `/etc/systemd/network/99-omni.network`                        | Configuración para systemd-networkd |
+Las configuraciones buscan habilitar la obtención automática de direcciones IP mediante DHCP.
 
-Estas configuraciones están pensadas para cubrir distintas familias de gestión de red. No obstante, **escribir los archivos no significa que todos los gestores vayan a activarlos correctamente**: depende de los servicios instalados, de su configuración y de la compatibilidad de cada sistema operativo.
+**Nota:** la creación de estos archivos no garantiza que la conectividad funcione. El resultado depende del sistema operativo, de los servicios de red activos, de la configuración previa y del entorno de virtualización.
 
-## 🔬 Flujo de ejecución
+## 🔬 Flujo de trabajo
 
 ```text
-OVA
- │
- ▼
-Extracción del paquete
- │
- ▼
-Localización del VMDK
- │
- ▼
-Conversión del disco
- │
- ▼
+Archivo OVA
+    │
+    ▼
+Extracción del contenido
+    │
+    ▼
+Localización del disco VMDK
+    │
+    ▼
+Conversión de la imagen
+    │
+    ▼
 Inspección de particiones
- │
- ▼
-Detección de la raíz Linux
- │
- ▼
+    │
+    ▼
+Identificación de la raíz Linux
+    │
+    ▼
 Confirmación del usuario
- │
- ▼
-Inyección de configuraciones DHCP
- │
- ▼
-Verificación e importación
+    │
+    ▼
+Modificación de configuraciones
+    │
+    ▼
+Importación y pruebas de conectividad
 ```
 
-## ⚠️ Consideraciones importantes
+## ⚠️ Consideraciones y limitaciones
 
-- **Trabaja con una copia del OVA original.** El script reemplaza el VMDK extraído tras convertirlo y modifica su sistema de archivos.
-- **No todos los discos tienen una única partición raíz.** Sistemas con LVM, cifrado, Btrfs, particiones separadas o diseños complejos pueden requerir un tratamiento específico.
-- **La conversión no garantiza compatibilidad con VMware.** La compatibilidad depende también del controlador virtual, del firmware, del formato de disco y de la configuración de la máquina.
-- **Los nombres de interfaz varían.** Las reglas `en*` y `eth*` no cubren necesariamente todas las interfaces posibles, como algunas denominadas `ens*`, `enp*` o `eno*` si la expresión utilizada no coincide con ellas.
-- **Los gestores de red pueden entrar en conflicto.** Netplan, NetworkManager, ifupdown y systemd-networkd no deben configurarse simultáneamente sin comprobar qué servicio administra realmente la interfaz.
-- **Utiliza la herramienta únicamente con máquinas autorizadas**, como laboratorios propios, máquinas CTF y entornos de práctica.
+- **Conserva el archivo original.** La herramienta reemplaza el VMDK extraído por una imagen convertida y modifica archivos dentro del sistema invitado.
+- **Verifica la partición raíz.** Los sistemas con LVM, cifrado, Btrfs, particiones separadas o distribuciones de disco no convencionales pueden necesitar un procedimiento diferente.
+- **La conversión no garantiza compatibilidad total.** El arranque también depende del firmware, los controladores virtuales y la configuración de la máquina.
+- **Comprueba los nombres de las interfaces.** Las reglas incluidas no cubren necesariamente todas las convenciones de nombres utilizadas por Linux.
+- **Evita conflictos entre gestores de red.** La configuración debe adaptarse al servicio que realmente administra las interfaces del sistema invitado.
+- **Revisa los cambios antes de arrancar.** Si el sistema ya dispone de configuraciones de red específicas, los nuevos archivos podrían entrar en conflicto con ellas.
 
-## 🗺️ Estado del proyecto
+Utiliza la herramienta únicamente con máquinas virtuales propias o con autorización para modificarlas.
 
-OmniNet es una herramienta de automatización para preparar máquinas virtuales Linux. Su comportamiento depende de la estructura del OVA, del sistema invitado y del entorno de virtualización de destino.
+## 🎯 Objetivo
 
-Las pruebas con distintas distribuciones y configuraciones de red son necesarias antes de considerarla una solución universal.
+Facilitar la preparación de discos virtuales Linux para laboratorios CTF y entornos de práctica, reduciendo el trabajo manual necesario para inspeccionar imágenes y ajustar sus configuraciones de red antes de importarlas.
 
-## 📄 Licencia
-
-Añade aquí la licencia que hayas elegido para el proyecto, por ejemplo, MIT, si deseas distribuirlo bajo esos términos.
+La herramienta sirve como punto de partida para preparar máquinas virtuales; cada imagen debe verificarse individualmente para confirmar su compatibilidad y conectividad.
